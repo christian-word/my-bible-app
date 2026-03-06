@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Библиотека на GitHub</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
+    <style>
+        /* (Стили оставляем прежние, добавим только индикатор загрузки) */
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #f4f7f6; }
+        .sidebar { width: 280px; background: #2c3e50; color: white; padding: 20px; overflow-y: auto; }
+        .main { flex-grow: 1; display: flex; flex-direction: column; }
+        .top-nav { padding: 15px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 10px; }
+        #compare-grid { display: flex; overflow-x: auto; flex-grow: 1; background: #eee; gap: 1px; }
+        .translation-column { min-width: 350px; background: white; padding: 15px; overflow-y: auto; }
+        .db-link { 
+            padding: 10px; background: #34495e; margin-bottom: 5px; cursor: pointer; 
+            border-radius: 4px; font-size: 14px; transition: 0.2s;
+        }
+        .db-link:hover { background: #1a73e8; }
+        .db-link.active { border-left: 5px solid #4caf50; background: #1a73e8; }
+        .loader { font-size: 12px; color: #ff9800; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h3>📂 Доступные переводы</h3>
+    <div id="loader" class="loader">⏳ Загрузка базы...</div>
+    <div id="remote-db-list">
+        <div class="db-link" data-url="databases/GRM.SQLite3">Громов (Украинский)</div>
+        <div class="db-link" data-url="databases/RST.SQLite3">Синодальный (Русский)</div>
+        </div>
+</div>
+
+<div class="main">
+    <div class="top-nav">
+        <select id="book-select" disabled><option>Выберите книгу</option></select>
+        <select id="chapter-select" disabled><option>Глава</option></select>
+    </div>
+    <div id="compare-grid"></div>
+</div>
+
+<script>
+    let dbs = {}; 
+    let SQL_ENGINE = null;
+
+    const bookSelect = document.getElementById('book-select');
+    const chapterSelect = document.getElementById('chapter-select');
+    const grid = document.getElementById('compare-grid');
+    const loader = document.getElementById('loader');
+
+    // 1. Инициализация SQL.js
+    initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` }).then(SQL => {
+        SQL_ENGINE = SQL;
+    });
+
+    // 2. Логика клика по книге из списка
+    document.querySelectorAll('.db-link').forEach(link => {
+        link.onclick = async function() {
+            const url = this.getAttribute('data-url');
+            const fileName = url.split('/').pop();
+
+            if (dbs[fileName]) {
+                alert("Эта книга уже загружена!");
+                return;
+            }
+
+            this.classList.add('active');
+            loader.style.display = 'block';
+
+            try {
+                // Прямой запрос к файлу на GitHub
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Файл не найден");
+                
+                const buffer = await response.arrayBuffer();
+                dbs[fileName] = new SQL_ENGINE.Database(new Uint8Array(buffer));
+                
+                updateInterface();
+                loader.style.display = 'none';
+            } catch (e) {
+                alert("Ошибка загрузки: " + e.message);
+                loader.style.display = 'none';
+            }
+        };
+    });
+
+    function updateInterface() {
+        // Собираем книги
+        const books = new Map();
+        Object.values(dbs).forEach(db => {
+            const res = db.exec("SELECT book_number, long_name FROM books");
+            res[0].values.forEach(row => books.set(row[0], row[1]));
+        });
+
+        bookSelect.innerHTML = '<option value="">Выберите книгу</option>';
+        [...books.entries()].sort((a,b)=>a[0]-b[0]).forEach(([id, name]) => {
+            bookSelect.appendChild(new Option(name, id));
+        });
+        bookSelect.disabled = false;
+    }
+
+    // (Код для выбора главы и синхронного скролла остается из предыдущего ответа)
+    // ... chapterSelect.onchange и renderComparison ...
+    
+    // Вставьте здесь функции renderComparison() и handleSyncScroll из прошлого кода
+</script>
+</body>
+</html>
