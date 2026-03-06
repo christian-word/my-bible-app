@@ -2,108 +2,189 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Библиотека на GitHub</title>
+    <title>Моя Библейская Библиотека</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
-        /* (Стили оставляем прежние, добавим только индикатор загрузки) */
-        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #f4f7f6; }
-        .sidebar { width: 280px; background: #2c3e50; color: white; padding: 20px; overflow-y: auto; }
-        .main { flex-grow: 1; display: flex; flex-direction: column; }
-        .top-nav { padding: 15px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 10px; }
-        #compare-grid { display: flex; overflow-x: auto; flex-grow: 1; background: #eee; gap: 1px; }
-        .translation-column { min-width: 350px; background: white; padding: 15px; overflow-y: auto; }
-        .db-link { 
-            padding: 10px; background: #34495e; margin-bottom: 5px; cursor: pointer; 
-            border-radius: 4px; font-size: 14px; transition: 0.2s;
+        :root { --accent: #1a73e8; --dark: #2c3e50; --light: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: #eee; overflow: hidden; }
+        
+        /* Боковая панель */
+        .sidebar { width: 300px; background: var(--dark); color: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
+        .sidebar-header { padding: 20px; background: #1a252f; border-bottom: 1px solid #3e4f5f; }
+        .db-list { flex-grow: 1; overflow-y: auto; padding: 15px; }
+        .db-item { 
+            padding: 12px; background: #34495e; margin-bottom: 8px; border-radius: 6px; 
+            cursor: pointer; transition: 0.3s; font-size: 14px; border-left: 4px solid transparent;
         }
-        .db-link:hover { background: #1a73e8; }
-        .db-link.active { border-left: 5px solid #4caf50; background: #1a73e8; }
-        .loader { font-size: 12px; color: #ff9800; display: none; }
+        .db-item:hover { background: #455d75; }
+        .db-item.loaded { border-left-color: #4caf50; background: #1a73e8; }
+        .status { font-size: 12px; color: #bdc3c7; margin-top: 10px; }
+
+        /* Основная область */
+        .content { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+        .nav { height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; gap: 15px; border-bottom: 1px solid #ddd; }
+        select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 15px; }
+        
+        #compare-grid { display: flex; overflow-x: auto; flex-grow: 1; gap: 1px; background: #ccc; }
+        .column { min-width: 400px; background: white; display: flex; flex-direction: column; }
+        .col-header { padding: 15px; font-weight: bold; background: var(--light); border-bottom: 2px solid var(--accent); position: sticky; top: 0; }
+        .verses { padding: 20px; overflow-y: auto; flex-grow: 1; line-height: 1.6; }
+        
+        .verse-row { display: flex; margin-bottom: 10px; }
+        .v-num { min-width: 30px; font-weight: bold; color: var(--accent); font-size: 0.8em; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h3>📂 Доступные переводы</h3>
-    <div id="loader" class="loader">⏳ Загрузка базы...</div>
-    <div id="remote-db-list">
-        <div class="db-link" data-url="databases/GRM.SQLite3">Громов (Украинский)</div>
-        <div class="db-link" data-url="databases/RST.SQLite3">Синодальный (Русский)</div>
+    <div class="sidebar-header">
+        <h3>📖 Переводы</h3>
+        <div id="loading-info" class="status">Сканирую репозиторий...</div>
+    </div>
+    <div id="db-list" class="db-list">
         </div>
 </div>
 
-<div class="main">
-    <div class="top-nav">
-        <select id="book-select" disabled><option>Выберите книгу</option></select>
-        <select id="chapter-select" disabled><option>Глава</option></select>
+<div class="content">
+    <div class="nav">
+        <select id="book-select" disabled><option>Книга...</option></select>
+        <select id="chapter-select" disabled><option>Глава...</option></select>
     </div>
-    <div id="compare-grid"></div>
+    <div id="compare-grid">
+        <div style="padding: 50px; color: #666; text-align: center; width: 100%;">
+            Выберите переводы слева (кликните по ним), чтобы начать сравнение.
+        </div>
+    </div>
 </div>
 
 <script>
-    let dbs = {}; 
-    let SQL_ENGINE = null;
+    // НАСТРОЙКИ ТВОЕГО РЕПОЗИТОРИЯ
+    const user = "christian-word";
+    const repo = "my-bible-app";
+    const folder = "databases";
 
+    let SQL_ENGINE = null;
+    let loadedDbs = {};
+
+    const dbList = document.getElementById('db-list');
+    const loadingInfo = document.getElementById('loading-info');
     const bookSelect = document.getElementById('book-select');
     const chapterSelect = document.getElementById('chapter-select');
     const grid = document.getElementById('compare-grid');
-    const loader = document.getElementById('loader');
 
     // 1. Инициализация SQL.js
-    initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` }).then(SQL => {
-        SQL_ENGINE = SQL;
+    initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` }).then(res => {
+        SQL_ENGINE = res;
+        fetchFileList();
     });
 
-    // 2. Логика клика по книге из списка
-    document.querySelectorAll('.db-link').forEach(link => {
-        link.onclick = async function() {
-            const url = this.getAttribute('data-url');
-            const fileName = url.split('/').pop();
+    // 2. Получаем список файлов через GitHub API
+    async function fetchFileList() {
+        try {
+            const response = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${folder}`);
+            const files = await response.json();
+            
+            dbList.innerHTML = "";
+            files.filter(f => f.name.endsWith('.SQLite3')).forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'db-item';
+                div.textContent = file.name.replace('.SQLite3', '');
+                div.onclick = () => loadDatabase(file.download_url, file.name, div);
+                dbList.appendChild(div);
+            });
+            loadingInfo.textContent = "Найдено файлов: " + files.length;
+        } catch (e) {
+            loadingInfo.textContent = "Ошибка API: " + e.message;
+        }
+    }
 
-            if (dbs[fileName]) {
-                alert("Эта книга уже загружена!");
-                return;
-            }
+    // 3. Загрузка базы в память
+    async function loadDatabase(url, name, element) {
+        if (loadedDbs[name]) return;
+        
+        element.textContent = "⏳ Загрузка...";
+        try {
+            const resp = await fetch(url);
+            const buf = await resp.arrayBuffer();
+            loadedDbs[name] = new SQL_ENGINE.Database(new Uint8Array(buf));
+            
+            element.classList.add('loaded');
+            element.textContent = name.replace('.SQLite3', '');
+            updateSelectors();
+        } catch (e) {
+            element.textContent = "❌ Ошибка";
+        }
+    }
 
-            this.classList.add('active');
-            loader.style.display = 'block';
-
-            try {
-                // Прямой запрос к файлу на GitHub
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Файл не найден");
-                
-                const buffer = await response.arrayBuffer();
-                dbs[fileName] = new SQL_ENGINE.Database(new Uint8Array(buffer));
-                
-                updateInterface();
-                loader.style.display = 'none';
-            } catch (e) {
-                alert("Ошибка загрузки: " + e.message);
-                loader.style.display = 'none';
-            }
-        };
-    });
-
-    function updateInterface() {
-        // Собираем книги
+    // 4. Обновление выпадающих списков
+    function updateSelectors() {
         const books = new Map();
-        Object.values(dbs).forEach(db => {
-            const res = db.exec("SELECT book_number, long_name FROM books");
-            res[0].values.forEach(row => books.set(row[0], row[1]));
+        Object.values(loadedDbs).forEach(db => {
+            try {
+                const res = db.exec("SELECT book_number, long_name FROM books");
+                res[0].values.forEach(row => books.set(row[0], row[1]));
+            } catch(e) {}
         });
 
-        bookSelect.innerHTML = '<option value="">Выберите книгу</option>';
+        const currentBook = bookSelect.value;
+        bookSelect.innerHTML = '<option value="">Книга...</option>';
         [...books.entries()].sort((a,b)=>a[0]-b[0]).forEach(([id, name]) => {
             bookSelect.appendChild(new Option(name, id));
         });
+        bookSelect.value = currentBook;
         bookSelect.disabled = false;
     }
 
-    // (Код для выбора главы и синхронного скролла остается из предыдущего ответа)
-    // ... chapterSelect.onchange и renderComparison ...
-    
-    // Вставьте здесь функции renderComparison() и handleSyncScroll из прошлого кода
+    bookSelect.onchange = function() {
+        const bId = this.value;
+        chapterSelect.innerHTML = '<option value="">Глава</option>';
+        if (!bId) return;
+
+        let max = 0;
+        Object.values(loadedDbs).forEach(db => {
+            try {
+                const res = db.exec(`SELECT MAX(chapter) FROM verses WHERE book_number = ${bId}`);
+                const val = res[0].values[0][0];
+                if (val > max) max = val;
+            } catch(e) {}
+        });
+
+        for(let i=1; i<=max; i++) chapterSelect.appendChild(new Option(i, i));
+        chapterSelect.disabled = false;
+    };
+
+    chapterSelect.onchange = render;
+
+    // 5. Отрисовка колонок и синхронный скролл
+    function render() {
+        const bId = bookSelect.value;
+        const cId = chapterSelect.value;
+        if (!bId || !cId) return;
+
+        grid.innerHTML = "";
+        Object.keys(loadedDbs).forEach(name => {
+            const col = document.createElement('div');
+            col.className = 'column';
+            col.innerHTML = `<div class="col-header">${name}</div>`;
+            
+            const vDiv = document.createElement('div');
+            vDiv.className = 'verses';
+            vDiv.onscroll = (e) => {
+                document.querySelectorAll('.verses').forEach(el => {
+                    if (el !== e.target) el.scrollTop = e.target.scrollTop;
+                });
+            };
+
+            const res = loadedDbs[name].exec(`SELECT verse, text FROM verses WHERE book_number=${bId} AND chapter=${cId} ORDER BY verse`);
+            if (res[0]) {
+                res[0].values.forEach(row => {
+                    vDiv.innerHTML += `<div class="verse-row"><span class="v-num">${row[0]}</span><span>${row[1]}</span></div>`;
+                });
+            }
+            col.appendChild(vDiv);
+            grid.appendChild(col);
+        });
+    }
 </script>
 </body>
 </html>
