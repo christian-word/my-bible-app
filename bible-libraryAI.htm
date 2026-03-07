@@ -1,0 +1,2283 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Библейская Библиотека 15 книг</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --blue: #1a56db;
+    --blue-dark: #1342b0;
+    --blue-light: #e8f0fe;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+
+    /* Маппинг для основных элементов */
+    --bg: var(--gray-100);
+    --surface: #ffffff;
+    --border: var(--gray-200);
+    --text: var(--gray-900);
+    --accent: var(--blue);
+    --mark: #fef9c3;
+    --mark-text: #713f12;
+    --sidebar-bg: #ffffff;
+    --sidebar-text: var(--gray-700);
+}
+
+
+
+/* ─── ПОЛНОЭКРАННЫЙ РЕЖИМ КОЛОНКИ ─── */
+.expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--gray-500);
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    line-height: 1;
+}
+.expand-btn:hover { color: var(--blue); background: var(--gray-100); }
+
+.column.fullscreen .close-col { display: none; }
+
+.fullscreen-close {
+    display: none;
+    position: fixed;
+    top: 12px;
+    right: 20px;
+    z-index: 200;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    letter-spacing: 0.03em;
+    transition: background 0.15s;
+}
+.fullscreen-close:hover { background: #b91c1c; }
+.column.fullscreen ~ .fullscreen-close,
+.fullscreen-close.visible { display: block; }
+
+
+.column.fullscreen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 100;
+    border-radius: 0;
+    min-width: unset;
+    width: 100% !important;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.column.fullscreen .close-col {
+    display: none;
+}
+
+body.dark .expand-btn:hover {
+    background: var(--gray-200);
+}
+
+/* ─── ТЁМНАЯ ТЕМА ─── */
+body.dark {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --gray-50: #1e293b;
+    --gray-100: #1a2540;
+    --gray-200: #2d3f5a;
+    --gray-300: #3d5070;
+    --gray-400: #7a90b0;
+    --gray-500: #94a3b8;
+    --gray-700: #cbd5e1;
+    --gray-900: #f1f5f9;
+    --sidebar-bg: #1e293b;
+    --sidebar-text: #cbd5e1;
+    --mark: #3d3000;
+    --mark-text: #fde68a;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+}
+
+body.dark .topbar,
+body.dark .sidebar,
+body.dark .sidebar-header,
+body.dark .column,
+body.dark .col-header,
+body.dark .nav-group,
+body.dark .fav-link,
+body.dark .nav-btn,
+body.dark .search-area,
+body.dark .font-size-control,
+body.dark .font-btn {
+    background: var(--surface);
+    border-color: var(--gray-200);
+    color: var(--gray-900);
+}
+
+body.dark .search-area input {
+    background: var(--surface);
+    color: var(--gray-900);
+}
+
+body.dark select {
+    color: var(--gray-900);
+    background: transparent;
+}
+
+body.dark .verse-row.highlighted {
+    background: #1e3a5f;
+    border-left-color: var(--blue);
+}
+
+body.dark .verse-row:hover {
+    background: #243450;
+}
+
+body.dark .db-item {
+    color: #cbd5e1;
+    background: #243450;
+    border-color: #2d3f5a;
+}
+
+body.dark .db-item:hover {
+    background: #2d4a6e;
+    color: #e2e8f0;
+}
+
+body.dark .db-item.loaded {
+    background: rgba(26, 86, 219, 0.25);
+    color: #93c5fd;
+    border-color: rgba(26, 86, 219, 0.4);
+}
+
+body.dark .sidebar-section {
+    color: #7a90b0;
+}
+
+body.dark .v-text {
+    color: #d1dae8;
+}
+
+/* Переключатель */
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--gray-300);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 10px;
+    line-height: 1;
+    transition: all 0.2s ease;
+    color: var(--gray-700);
+}
+
+.theme-toggle:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+/* ─── БОКОВАЯ ПАНЕЛЬ (SIDEBAR) ─── */
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--gray-200);
+    box-shadow: var(--shadow);
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--sidebar-bg);
+}
+
+.sidebar-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 2px;
+}
+
+.sidebar-header .sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-400);
+}
+
+.sidebar-section {
+    padding: 12px 16px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.db-list {
+    overflow-y: auto;
+    padding: 8px;
+    border-bottom: 1px solid var(--gray-200);
+    max-height: 45%;
+}
+
+.db-item {
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.db-item:hover {
+    background: var(--gray-100);
+}
+
+.db-item.loaded {
+    background: rgba(26, 86, 219, 0.1);
+    color: var(--blue);
+    font-weight: 600;
+    border: 1px solid rgba(26, 86, 219, 0.2);
+}
+
+.db-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray-300);
+    flex-shrink: 0;
+    transition: 0.2s ease;
+}
+
+.db-item.loaded .db-dot {
+    background: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.2);
+}
+
+/* ── ЗАКЛАДКИ (ТЕГИ) ── */
+.fav-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-content: flex-start;
+}
+
+
+/* ─── ЗАМЕТКИ К ЗАКЛАДКАМ ─── */
+.fav-link {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--gray-200);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--blue);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+    position: relative;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+}
+
+.fav-link-top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.fav-note-text {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--gray-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.fav-note-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--gray-400);
+    padding: 0 2px;
+    transition: 0.15s;
+    line-height: 1;
+}
+.fav-note-btn:hover { color: var(--blue); }
+
+/* Модальное окно заметки */
+.note-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+.note-modal-overlay.open { display: flex; }
+
+.note-modal {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+body.dark .note-modal {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
+.note-modal h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.note-modal textarea {
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    resize: none;
+    height: 90px;
+    outline: none;
+    color: var(--gray-900);
+    background: var(--gray-50);
+    transition: border 0.2s;
+}
+
+body.dark .note-modal textarea {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-color: #334155;
+}
+
+.note-modal textarea:focus { border-color: var(--blue); }
+
+.note-modal-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.note-modal-btns button {
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: 0.15s;
+}
+
+.note-save-btn { background: var(--blue); color: #fff; }
+.note-save-btn:hover { background: var(--blue-dark); }
+.note-cancel-btn { background: var(--gray-100); color: var(--gray-700); }
+.note-cancel-btn:hover { background: var(--gray-200); }
+
+
+.fav-link:hover {
+    background: var(--blue-light);
+    border-color: rgba(26, 86, 219, 0.3);
+    transform: translateY(-1px);
+}
+
+.fav-del {
+    margin-left: 6px;
+    color: var(--gray-400);
+    font-size: 14px;
+    transition: 0.15s;
+}
+
+.fav-del:hover { color: var(--red); }
+
+/* ─── ОСНОВНОЙ КОНТЕНТ (MAIN) ─── */
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.topbar {
+    height: 48px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    z-index: 10;
+}
+
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    padding: 4px 6px;
+    border: 1px solid var(--gray-200);
+}
+
+select {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-900);
+    padding: 2px 4px;
+    cursor: pointer;
+}
+
+/* ОБНОВЛЕНО: Жирные и заметные стрелки */
+.nav-btn {
+    background: #ffffff;
+    border: 1.5px solid var(--gray-300);
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px; /* Увеличен размер символа */
+    font-weight: 900; /* Максимальная жирность */
+    color: var(--gray-700); /* Более контрастный цвет */
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow);
+    line-height: 1;
+}
+
+.nav-btn:hover {
+    background: var(--blue);
+    color: #ffffff;
+    border-color: var(--blue);
+    transform: scale(1.05);
+}
+
+.nav-btn:active {
+    transform: scale(0.95);
+}
+
+.search-area {
+    display: flex;
+    margin-left: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.search-area input {
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 200px;
+}
+
+.font-size-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 3px 6px;
+}
+
+.font-btn {
+    background: #ffffff;
+    border: 1px solid var(--gray-300);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-700);
+    padding: 3px 7px;
+    line-height: 1;
+    transition: all 0.15s ease;
+}
+
+.font-btn:hover {
+    background: var(--blue);
+    color: #ffffff;
+    border-color: var(--blue);
+}
+
+#font-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    min-width: 30px;
+    text-align: center;
+}
+
+.search-btn {
+    background: var(--blue);
+    color: #ffffff;
+    border: none;
+    padding: 0 16px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* ─── СЕТКА СРАВНЕНИЯ (GRID) ─── */
+#compare-grid {
+    flex: 1;
+    display: flex;
+    overflow-x: auto;
+    background: var(--gray-100);
+    gap: 16px;
+    padding: 16px;
+    padding-bottom: 20px;
+    margin-bottom: 8px;
+}
+
+/* Горизонтальный скроллбар — заметный и с отступом */
+#compare-grid::-webkit-scrollbar {
+    height: 10px;
+}
+
+#compare-grid::-webkit-scrollbar-track {
+    background: var(--gray-200);
+    border-radius: 10px;
+    margin: 0 16px;
+}
+
+#compare-grid::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 10px;
+    border: 2px solid var(--gray-200);
+}
+
+#compare-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--blue);
+}
+
+.column {
+    min-width: 420px;
+    flex: 1;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+}
+
+.col-header {
+    padding: 5px 12px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 2px solid var(--blue);
+    min-height: 0;
+}
+
+.col-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.col-subtitle {
+    font-size: 10px;
+    color: var(--gray-400);
+}
+
+.close-col {
+    cursor: pointer;
+    color: var(--gray-500);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    transition: 0.15s;
+}
+
+.close-col:hover { color: var(--red); }
+
+/* ─── ТЕКСТ ПИСАНИЯ ─── */
+.verses {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.verse-row {
+    display: flex;
+    gap: 12px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    transition: background 0.2s ease;
+    margin-bottom: 2px;
+}
+
+.verse-row:hover { background: var(--gray-50); }
+.verse-row.highlighted {
+    background: #eef3fd;
+    border-left: 2px solid var(--blue);
+    padding-left: 6px;
+}
+
+.v-num {
+    min-width: 32px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-400);
+    padding-top: 6px;
+    cursor: pointer;
+    user-select: none;
+    text-align: right;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.v-num:hover { color: var(--blue); text-decoration: underline; }
+
+.v-text {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 17px;
+    color: var(--gray-900);
+    flex: 1;
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+}
+
+mark {
+    background: var(--mark);
+    color: var(--mark-text);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+}
+
+
+/* ─── АНИМАЦИИ ─── */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.column {
+    animation: fadeInUp 0.3s ease both;
+}
+
+.db-item.loading .db-dot {
+    border: 2px solid var(--gray-300);
+    border-top-color: var(--blue);
+    background: transparent !important;
+    box-shadow: none !important;
+    animation: spin 0.7s linear infinite;
+    width: 10px;
+    height: 10px;
+}
+
+.db-item.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Прогресс в шапке сайдбара */
+.loading-bar {
+    height: 2px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+    display: none;
+}
+.loading-bar.active { display: block; }
+.loading-bar-fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+
+/* ─── ИИ ПАНЕЛЬ ─── */
+.ai-btn {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 6px rgba(99,102,241,0.4);
+}
+.ai-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.5); }
+.ai-btn:active { transform: translateY(0); }
+
+.ai-panel {
+    position: fixed;
+    right: 0; top: 0; bottom: 0;
+    width: 380px;
+    background: #ffffff;
+    border-left: 1px solid var(--gray-200);
+    box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    z-index: 150;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+.ai-panel.open { transform: translateX(0); }
+
+body.dark .ai-panel {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.ai-panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+}
+.ai-panel-header h3 { font-size: 14px; font-weight: 700; }
+.ai-close-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    width: 26px; height: 26px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.15s;
+}
+.ai-close-btn:hover { background: rgba(255,255,255,0.35); }
+
+.ai-actions {
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--gray-200);
+}
+.ai-action-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--gray-200);
+    background: var(--gray-50);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.3;
+}
+.ai-action-btn:hover, .ai-action-btn.active {
+    border-color: #6366f1;
+    background: #eef2ff;
+    color: #4f46e5;
+}
+body.dark .ai-action-btn {
+    background: #0f172a;
+    border-color: #334155;
+    color: #cbd5e1;
+}
+body.dark .ai-action-btn:hover, body.dark .ai-action-btn.active {
+    border-color: #6366f1;
+    background: #1e1b4b;
+    color: #a5b4fc;
+}
+
+.ai-context {
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--gray-500);
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+body.dark .ai-context { background: #0f172a; }
+
+.ai-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ai-message {
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    animation: fadeInUp 0.2s ease;
+}
+.ai-message.user {
+    background: #eef2ff;
+    color: #3730a3;
+    align-self: flex-end;
+    max-width: 90%;
+}
+body.dark .ai-message.user { background: #1e1b4b; color: #a5b4fc; }
+
+.ai-message.assistant {
+    background: var(--gray-100);
+    color: var(--gray-900);
+    align-self: flex-start;
+    max-width: 100%;
+}
+body.dark .ai-message.assistant { background: #0f172a; color: #e2e8f0; }
+
+.ai-message.thinking {
+    color: var(--gray-400);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ai-dots span {
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #6366f1;
+    animation: bounce 1s infinite;
+}
+.ai-dots span:nth-child(2) { animation-delay: 0.15s; }
+.ai-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-5px); opacity: 1; }
+}
+
+.ai-input-area {
+    padding: 12px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    gap: 8px;
+}
+.ai-input-area input {
+    flex: 1;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    font-size: 13px;
+    outline: none;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    transition: border 0.2s;
+}
+body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+.ai-input-area input:focus { border-color: #6366f1; }
+.ai-send-btn {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.15s;
+}
+.ai-send-btn:hover { background: #4f46e5; }
+.ai-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* СКРОЛЛБАР */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--gray-100); }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+/* ─── МОБИЛЬНАЯ АДАПТАЦИЯ ─── */
+@media (max-width: 768px) {
+
+    /* ── OVERLAY для sidebar ── */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 290;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ── SIDEBAR: выдвижная панель ── */
+    body {
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        width: 82vw;
+        max-width: 320px;
+        z-index: 300;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+        border-right: 1px solid var(--gray-200);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* ── CONTENT: занимает весь экран ── */
+    .content {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── TOPBAR: одна строка ☰ | [Книга▼] | ‹ | [Гл▼] | › ── */
+    .topbar {
+        height: 50px;
+        flex-wrap: nowrap;
+        padding: 0 6px;
+        gap: 4px;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+
+    /* Скрываем второстепенное: поиск, шрифт, тема, ИИ — они в нижней панели */
+    .topbar .search-area,
+    .topbar .font-size-control,
+    .topbar .theme-toggle,
+    .topbar .ai-btn {
+        display: none !important;
+    }
+
+    /* Кнопка закрытия sidebar */
+    .sidebar-close-btn {
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: var(--gray-400);
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 6px;
+        line-height: 1;
+        transition: color 0.15s, background 0.15s;
+    }
+    .sidebar-close-btn:hover { color: var(--red); background: var(--gray-100); }
+
+    /* Кнопка-гамбургер */
+    .menu-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: 1.5px solid var(--gray-300);
+        border-radius: 7px;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        cursor: pointer;
+        font-size: 22px;
+        color: var(--gray-700);
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+    .menu-btn:active { background: var(--gray-100); }
+
+    /* nav-group занимает всё доступное место */
+    .nav-group {
+        flex: 1;
+        min-width: 0;
+        padding: 4px 6px;
+        gap: 4px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Выбор книги — максимально широкий */
+    #book-select {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* Выбор главы — компактный */
+    #chapter-select {
+        width: 54px;
+        min-width: 54px;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* Кнопки ‹ › — крупнее для пальца */
+    .nav-btn {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        font-size: 22px;
+        font-weight: 900;
+        flex-shrink: 0;
+    }
+
+    /* ── GRID: карусель — один перевод на весь экран ── */
+    #compare-grid {
+        flex-direction: row;
+        overflow: hidden;
+        padding: 0;
+        gap: 0;
+        flex: 1;
+        position: relative;
+    }
+
+    /* Внутренний трек карусели */
+    #carousel-track {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+    }
+
+    .column {
+        min-width: 100vw;
+        width: 100vw;
+        flex: none;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        height: 100%;
+        animation: none;
+    }
+
+    .column.fullscreen {
+        min-width: 100vw;
+    }
+
+    /* Индикатор текущего перевода (точки) */
+    #carousel-dots {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 0 4px;
+        flex-shrink: 0;
+        background: var(--bg);
+    }
+    .carousel-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--gray-300);
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .carousel-dot.active {
+        background: var(--blue);
+        width: 18px;
+        border-radius: 4px;
+    }
+
+    /* Название текущего перевода в заголовке */
+    #mob-translation-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--blue);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-align: center;
+        padding: 2px 8px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .verses {
+        padding: 12px 16px;
+        overflow-y: auto;
+        height: 100%;
+    }
+
+    .v-text {
+        font-size: 16px;
+        line-height: 1.75;
+    }
+
+    .v-num {
+        min-width: 28px;
+        font-size: 11px;
+        padding-top: 4px;
+    }
+
+    /* Скрыть заголовок колонки на мобиле — показываем label сверху */
+    .column .col-header {
+        display: none;
+    }
+
+    /* ── ИИ ПАНЕЛЬ: полноэкранная ── */
+    .ai-panel {
+        width: 100%;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+    .ai-panel.open {
+        transform: translateX(0);
+    }
+
+    /* ── НИЖНЯЯ НАВИГАЦИЯ ── */
+    .mobile-nav {
+        display: flex !important;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 52px;
+        background: var(--surface);
+        border-top: 1px solid var(--gray-200);
+        z-index: 100;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .mobile-nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--gray-400);
+        transition: color 0.15s;
+        padding: 6px 0;
+    }
+    .mobile-nav-btn .icon { font-size: 20px; line-height: 1; }
+    .mobile-nav-btn.active { color: var(--blue); }
+    .mobile-nav-btn:active { color: var(--blue); }
+
+    /* Компенсация высоты нижней навигации */
+    .content {
+        padding-bottom: 52px;
+    }
+
+    /* ── SIDEBAR: добавляем отступ снизу под нижнюю панель ── */
+    .sidebar {
+        padding-bottom: 52px;
+    }
+
+    /* Модальное окно — на весь экран */
+    .note-modal {
+        width: calc(100vw - 32px);
+    }
+
+    /* ── FULLSCREEN кнопка закрыть ── */
+    .fullscreen-close {
+        top: auto;
+        bottom: 68px;
+        right: 12px;
+    }
+
+    /* Скрыть скроллбар на мобилке */
+    ::-webkit-scrollbar { width: 0; height: 0; }
+
+    /* Кнопка меню — по умолчанию видна только на мобиле */
+    .menu-btn { display: flex; }
+}
+
+/* На десктопе скрываем мобильные элементы */
+@media (min-width: 769px) {
+    .mobile-nav { display: none !important; }
+    .menu-btn { display: none !important; }
+    .sidebar-overlay { display: none !important; }
+    .sidebar-close-btn { display: none !important; }
+}
+    </style>
+</head>
+<body>
+
+<!-- Overlay для закрытия sidebar -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <h2>📖 Библиотека v_1.0</h2>
+            <button class="sidebar-close-btn" onclick="closeSidebar()" title="Закрыть">✕</button>
+        </div>
+        <div class="sub" id="loading-info">Инициализация…</div>
+        <div class="loading-bar" id="loading-bar"><div class="loading-bar-fill" id="loading-bar-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="sidebar-section">Переводы</div>
+    <div id="db-list" class="db-list"></div>
+
+    <div class="sidebar-section">⭐ Закладки</div>
+    <div id="fav-list" class="fav-list">
+        <div class="fav-empty">Нажмите на номер стиха, чтобы добавить закладку</div>
+    </div>
+</div>
+
+<div class="content">
+    <div class="topbar">
+        <button class="menu-btn" id="menu-btn" onclick="toggleSidebar()" title="Меню">☰</button>
+        <div class="nav-group">
+            <select id="book-select" disabled><option value="">Выберите книгу…</option></select>
+            <div class="divider-v"></div>
+            <button id="prev-btn" class="nav-btn" title="Предыдущая глава">‹</button>
+            <select id="chapter-select" disabled><option value="">Гл.</option></select>
+            <button id="next-btn" class="nav-btn" title="Следующая глава">›</button>
+        </div>
+
+        <div class="font-size-control">
+            <button class="font-btn" id="font-dec">A−</button>
+            <span id="font-label">17px</span>
+            <button class="font-btn" id="font-inc">A+</button>
+        </div>
+
+        <button id="theme-toggle" class="theme-toggle" title="Тёмная/светлая тема">◐</button>
+        <button class="ai-btn" id="ai-open-btn">✦ ИИ</button>
+
+        <div class="search-area">
+            <input type="text" id="search-input" placeholder="Поиск по тексту…">
+            <button id="search-btn" class="search-btn">Найти</button>
+        </div>
+    </div>
+
+    <button class="fullscreen-close" id="fullscreen-close" onclick="exitFullscreen()">✕ Закрыть</button>
+
+    <!-- ИИ Панель -->
+    <div class="ai-panel" id="ai-panel">
+        <div class="ai-panel-header">
+            <h3>✦ Библейский помощник</h3>
+            <button class="ai-close-btn" id="ai-close-btn">✕</button>
+        </div>
+        <div class="ai-actions">
+            <button class="ai-action-btn" id="btn-compare" onclick="aiAction('compare')">⚖️ Сравнить<br>переводы</button>
+            <button class="ai-action-btn" id="btn-parallel" onclick="aiAction('parallel')">🔗 Параллельные<br>места</button>
+        </div>
+        <div class="ai-context" id="ai-context">Выберите книгу и главу</div>
+        <div class="ai-messages" id="ai-messages"></div>
+        <div class="ai-input-area">
+            <input type="text" id="ai-input" placeholder="Задайте вопрос…">
+            <button class="ai-send-btn" id="ai-send-btn">➤</button>
+        </div>
+    </div>
+    <div id="mob-translation-label"></div>
+    <div id="carousel-dots"></div>
+    <div id="compare-grid">
+        <div class="empty-state">
+            <div class="icon">📖</div>
+            <p>Выберите перевод в списке слева, затем откройте книгу и главу</p>
+        </div>
+    </div>
+</div>
+
+<!-- Нижняя навигация (только мобилка) -->
+<nav class="mobile-nav" id="mobile-nav">
+    <button class="mobile-nav-btn" id="mob-btn-books" onclick="toggleSidebar()">
+        <span class="icon">📚</span>Переводы
+    </button>
+    <button class="mobile-nav-btn" id="mob-btn-search" onclick="toggleMobileSearch()">
+        <span class="icon">🔍</span>Поиск
+    </button>
+    <button class="mobile-nav-btn" id="mob-btn-ai" onclick="document.getElementById('ai-open-btn').click()">
+        <span class="icon">✦</span>ИИ
+    </button>
+    <button class="mobile-nav-btn" id="mob-btn-font" onclick="toggleFontPanel()">
+        <span class="icon">Aa</span>Шрифт
+    </button>
+    <button class="mobile-nav-btn" id="mob-btn-theme" onclick="document.getElementById('theme-toggle').click()">
+        <span class="icon">◐</span>Тема
+    </button>
+</nav>
+
+<!-- Мобильная панель поиска (появляется над нижней панелью) -->
+<div id="mobile-search-bar" style="display:none; position:fixed; bottom:52px; left:0; right:0; z-index:99; background:var(--surface); border-top:1px solid var(--gray-200); padding:8px 10px; box-shadow:0 -2px 10px rgba(0,0,0,0.1); display:none; gap:8px; align-items:center;">
+    <input type="text" id="mob-search-input" placeholder="Поиск по тексту…" style="flex:1; border:1px solid var(--gray-200); border-radius:8px; padding:9px 12px; font-size:14px; outline:none; background:var(--gray-50); color:var(--gray-900);">
+    <button onclick="doMobileSearch()" style="background:var(--blue); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-weight:700; font-size:14px; cursor:pointer;">Найти</button>
+    <button onclick="closeMobileSearch()" style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; padding:9px 10px; font-size:18px; cursor:pointer; color:var(--gray-500);">✕</button>
+</div>
+
+<!-- Мобильная панель шрифта -->
+<div id="mobile-font-bar" style="display:none; position:fixed; bottom:52px; left:0; right:0; z-index:99; background:var(--surface); border-top:1px solid var(--gray-200); padding:10px 20px; box-shadow:0 -2px 10px rgba(0,0,0,0.1); align-items:center; justify-content:center; gap:20px;">
+    <button onclick="setFontSize(fontSize-1)" style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; width:44px; height:44px; font-size:22px; font-weight:700; cursor:pointer; color:var(--gray-700);">−</button>
+    <span id="mob-font-label" style="font-size:16px; font-weight:700; color:var(--gray-700); min-width:48px; text-align:center;">17px</span>
+    <button onclick="setFontSize(fontSize+1)" style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; width:44px; height:44px; font-size:22px; font-weight:700; cursor:pointer; color:var(--gray-700);">+</button>
+    <button onclick="closeFontPanel()" style="background:none; border:none; font-size:20px; color:var(--gray-400); cursor:pointer; padding:0 6px;">✕</button>
+</div>
+
+<!-- Модальное окно заметки -->
+<div class="note-modal-overlay" id="note-modal-overlay">
+    <div class="note-modal">
+        <h3 id="note-modal-title">Заметка к закладке</h3>
+        <textarea id="note-input" placeholder="Напишите заметку…"></textarea>
+        <div class="note-modal-btns">
+            <button class="note-cancel-btn" onclick="closeNoteModal()">Отмена</button>
+            <button class="note-save-btn" onclick="saveNote()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- КОНФИГУРАЦИЯ ---
+const user = "christian-word"; 
+const repo = "my-bible-app"; 
+const folder = "databases";
+
+let SQL_ENGINE = null;
+let loadedDbs = {};   // Хранилище объектов БД
+let dbSchemas = {};   // Хранилище определенных структур (таблицы, колонки)
+let favorites = [];   // Список закладок
+
+// Элементы интерфейса
+const dbList = document.getElementById('db-list');
+const favList = document.getElementById('fav-list');
+const bookSelect = document.getElementById('book-select');
+const chapterSelect = document.getElementById('chapter-select');
+const grid = document.getElementById('compare-grid');
+const searchInput = document.getElementById('search-input');
+
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+
+// Очистка текста от тегов и лишних цифр
+function cleanText(text) {
+    if (!text) return "";
+    // 1. Убираем XML/HTML теги типа <J>, <f>...</f>
+    // 2. Убираем цифры (номера стихов внутри текста)
+    // 3. Убираем двойные пробелы
+    return text.replace(/<[^>]*>/g, '')
+               .replace(/\d+/g, '')
+               .replace(/\s\s+/g, ' ')
+               .trim();
+}
+
+// Сохранение состояния (какие базы открыты, какая глава)
+function saveState() {
+    const state = {
+        loadedFiles: Object.keys(loadedDbs),
+        book: bookSelect.value,
+        chapter: chapterSelect.value,
+        favorites: favorites
+    };
+    localStorage.setItem('bible_app_state', JSON.stringify(state));
+}
+
+// Восстановление после перезагрузки
+async function restoreState(allFiles) {
+    const saved = localStorage.getItem('bible_app_state');
+    if (!saved) return;
+    const state = JSON.parse(saved);
+    
+    favorites = state.favorites || [];
+    renderFavorites();
+
+    // Загружаем только те базы, что были открыты
+    for (const name of (state.loadedFiles || [])) {
+        const fileData = allFiles.find(f => f.name === name);
+        if (fileData) {
+            const btn = document.getElementById("btn-" + name.replace(/\./g, '_'));
+            await loadDatabase(fileData.download_url, fileData.name, btn, false);
+        }
+    }
+
+    if (state.book) {
+        bookSelect.value = state.book;
+        bookSelect.onchange(); 
+        if (state.chapter) {
+            chapterSelect.value = state.chapter;
+            render();
+        }
+    }
+}
+
+// --- РАБОТА С БАЗОЙ ДАННЫХ ---
+
+// Инициализация SQL.js
+initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` }).then(res => {
+    SQL_ENGINE = res;
+    fetchFileList(); // Получаем список файлов с GitHub
+});
+
+async function fetchFileList() {
+    try {
+        const resp = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${folder}`);
+        const files = await resp.json();
+        const bibles = files.filter(f => f.name.endsWith('.SQLite3'));
+
+        bibles.forEach(file => {
+            const div = document.createElement('div');
+            div.className = 'db-item';
+            div.id = "btn-" + file.name.replace(/\./g, '_');
+            div.innerHTML = `<div class="db-dot"></div><span>${file.name.replace('.SQLite3','')}</span>`;
+            div.onclick = () => loadDatabase(file.download_url, file.name, div, true);
+            dbList.appendChild(div);
+        });
+
+        restoreState(bibles);
+    } catch (e) {
+        console.error("Ошибка API GitHub:", e);
+    }
+}
+
+async function loadDatabase(url, fileName, element, userClicked) {
+    if (loadedDbs[fileName]) return;
+
+    // Показываем спиннер на кнопке
+    if (element) element.classList.add('loading');
+    updateLoadingBar();
+
+    try {
+        const resp = await fetch(url);
+        const buf = await resp.arrayBuffer();
+        const db = new SQL_ENGINE.Database(new Uint8Array(buf));
+        loadedDbs[fileName] = db;
+
+        // --- ДЕТЕКТОР СТРУКТУРЫ ---
+        // Стандартные имена по умолчанию
+        let schema = { table: 'verses', book: 'book_number', chapter: 'chapter', verse: 'verse', text: 'text' };
+        
+        try {
+            const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+            const tableNames = tables[0].values.map(t => t[0].toLowerCase());
+
+            if (tableNames.includes('verses')) {
+                schema.table = 'verses';
+            } else if (tableNames.includes('bible')) {
+                schema.table = 'Bible';
+                schema.book = 'Book'; schema.chapter = 'Chapter'; schema.verse = 'Verse'; schema.text = 'Text';
+            }
+
+            // Проверка конкретных имен колонок через PRAGMA
+            const cols = db.exec(`PRAGMA table_info(${schema.table})`);
+            const colNames = cols[0].values.map(c => c[1].toLowerCase());
+            
+            if (colNames.includes('book_number')) schema.book = 'book_number';
+            else if (colNames.includes('book')) schema.book = 'book';
+            
+            if (colNames.includes('text')) schema.text = 'text';
+            else if (colNames.includes('content')) schema.text = 'content';
+        } catch (err) {
+            console.warn("Автодетект не сработал для " + fileName, err);
+        }
+        
+        dbSchemas[fileName] = schema;
+        // -------------------------
+
+        if (element) {
+            element.classList.remove('loading');
+            element.classList.add('loaded');
+        }
+        updateSelectors();
+        updateLoadingBar();
+        
+        if (bookSelect.value && chapterSelect.value) render();
+        if (userClicked) saveState();
+
+    } catch (e) {
+        console.error("Ошибка загрузки БД:", e);
+        if (element) element.classList.remove('loading');
+        updateLoadingBar();
+    }
+}
+
+function closeDatabase(name) {
+    delete loadedDbs[name];
+    delete dbSchemas[name];
+    const btn = document.getElementById("btn-" + name.replace(/\./g, '_'));
+    if (btn) btn.classList.remove('loaded');
+    render();
+    saveState();
+}
+
+// --- НАВИГАЦИЯ ---
+
+function updateSelectors() {
+    const booksMap = new Map();
+    Object.values(loadedDbs).forEach(db => {
+        try {
+            const res = db.exec("SELECT book_number, long_name FROM books");
+            if (res[0]) res[0].values.forEach(row => booksMap.set(row[0], row[1]));
+        } catch(e) {}
+    });
+
+    const currentBook = bookSelect.value;
+    bookSelect.innerHTML = '<option value="">Выберите книгу...</option>';
+    
+    [...booksMap.entries()].sort((a,b) => a[0]-b[0]).forEach(([id, name]) => {
+        bookSelect.appendChild(new Option(name, id));
+    });
+
+    bookSelect.value = currentBook;
+    bookSelect.disabled = false;
+}
+
+bookSelect.onchange = function() {
+    const bId = this.value;
+    chapterSelect.innerHTML = '<option value="">Глава</option>';
+    if (!bId) return;
+
+    let maxChapters = 0;
+    Object.keys(loadedDbs).forEach(name => {
+        const s = dbSchemas[name];
+        try {
+            const res = loadedDbs[name].exec(`SELECT MAX(${s.chapter}) FROM ${s.table} WHERE ${s.book} = ${bId}`);
+            if (res[0]) maxChapters = Math.max(maxChapters, res[0].values[0][0]);
+        } catch(e) {}
+    });
+
+    for (let i = 1; i <= maxChapters; i++) {
+        chapterSelect.appendChild(new Option(i, i));
+    }
+    chapterSelect.disabled = false;
+};
+
+chapterSelect.onchange = () => { render(); saveState(); };
+
+// Функции "Вперед" / "Назад"
+function changeChapter(step) {
+    let c = parseInt(chapterSelect.value) || 0;
+    let max = chapterSelect.options.length - 1;
+    if (c + step >= 1 && c + step <= max) {
+        chapterSelect.value = c + step;
+        render();
+        saveState();
+    }
+}
+document.getElementById('prev-btn').onclick = () => changeChapter(-1);
+document.getElementById('next-btn').onclick = () => changeChapter(1);
+
+// Прямой переход (из поиска или закладок)
+window.goToContext = function(bId, cId) {
+    bookSelect.value = bId;
+    bookSelect.onchange();
+    chapterSelect.value = cId;
+    render();
+    saveState();
+};
+
+// --- ОТРИСОВКА ТЕКСТА ---
+
+function render() {
+    const bId = bookSelect.value;
+    const cId = chapterSelect.value;
+    if (!bId || !cId) { grid.innerHTML = ""; return; }
+
+    const bName = bookSelect.options[bookSelect.selectedIndex].text;
+    grid.innerHTML = "";
+
+    Object.keys(loadedDbs).forEach(name => {
+        const s = dbSchemas[name];
+        const col = document.createElement('div');
+        col.className = 'column';
+        col.innerHTML = `
+            <div class="col-header">
+                <div>
+                    <div class="col-title">${name.replace('.SQLite3','')}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px">
+                    <button class="expand-btn" onclick="toggleFullscreen(this)" title="Развернуть">⛶</button>
+                    <span class="close-col" onclick="closeDatabase('${name}')">&times;</span>
+                </div>
+            </div>
+        `;
+
+        const vDiv = document.createElement('div');
+        vDiv.className = 'verses';
+        
+        // Синхронный скролл всех колонок (только на десктопе)
+        vDiv.onscroll = (e) => {
+            if (isMobile()) return;
+            document.querySelectorAll('.verses').forEach(el => {
+                if (el !== e.target) el.scrollTop = e.target.scrollTop;
+            });
+        };
+
+        try {
+            const res = loadedDbs[name].exec(`
+                SELECT ${s.verse}, ${s.text} FROM ${s.table} 
+                WHERE ${s.book}=${bId} AND ${s.chapter}=${cId} 
+                ORDER BY ${s.verse}
+            `);
+
+            if (res[0]) {
+                res[0].values.forEach(row => {
+                    const vRow = document.createElement('div');
+                    vRow.className = 'verse-row';
+                    vRow.dataset.verse = row[0];
+                    vRow.innerHTML = `
+                        <div class="v-num">${row[0]}</div>
+                        <span class="v-text">${cleanText(row[1])}</span>
+                    `;
+                    // Клик по номеру добавляет в избранное
+                    vRow.querySelector('.v-num').onclick = () => toggleFavorite(bId, bName, cId, row[0], cleanText(row[1]));
+                    // Синхронная подсветка во всех колонках
+                    vRow.addEventListener('mouseenter', () => {
+                        document.querySelectorAll(`.verse-row[data-verse="${row[0]}"]`).forEach(el => el.classList.add('highlighted'));
+                    });
+                    vRow.addEventListener('mouseleave', () => {
+                        document.querySelectorAll(`.verse-row[data-verse="${row[0]}"]`).forEach(el => el.classList.remove('highlighted'));
+                    });
+                    vDiv.appendChild(vRow);
+                });
+            }
+        } catch (err) {
+            vDiv.innerHTML = `<div style="padding:20px; color:var(--red)">Ошибка: ${err.message}</div>`;
+        }
+        
+        col.appendChild(vDiv);
+        grid.appendChild(col);
+    });
+}
+
+// --- ЗАКЛАДКИ (ИЗБРАННОЕ) ---
+
+let currentNoteId = null;
+
+function toggleFavorite(bId, bName, ch, vNum, verseText) {
+    const id = `${bId}-${ch}-${vNum}`;
+    if (favorites.some(f => f.id === id)) return;
+    // Берём первые 60 символов стиха как подсказку
+    const preview = verseText ? verseText.substring(0, 60).trimEnd() + (verseText.length > 60 ? '…' : '') : '';
+    favorites.push({ id, bId, bName, ch, vNum, note: '' });
+    renderFavorites();
+    saveState();
+    openNoteModal(id, preview);
+}
+
+function renderFavorites() {
+    favList.innerHTML = "";
+    if (!favorites.length) {
+        favList.innerHTML = '<div class="fav-empty">Нажмите на номер стиха, чтобы добавить закладку</div>';
+        return;
+    }
+    favorites.forEach(fav => {
+        const tag = document.createElement('div');
+        tag.className = 'fav-link';
+        tag.innerHTML = `
+            <div class="fav-link-top">
+                <span onclick="goToContext(${fav.bId}, ${fav.ch})">${fav.bName.substring(0,6)} ${fav.ch}:${fav.vNum}</span>
+                <button class="fav-note-btn" onclick="event.stopPropagation(); openNoteModal('${fav.id}')" title="Заметка">✏️</button>
+                <span class="fav-del" onclick="event.stopPropagation(); removeFavorite('${fav.id}')">&times;</span>
+            </div>
+            ${fav.note ? `<div class="fav-note-text">${fav.note}</div>` : ''}
+        `;
+        favList.appendChild(tag);
+    });
+}
+
+function openNoteModal(id, versePreview) {
+    currentNoteId = id;
+    const fav = favorites.find(f => f.id === id);
+    document.getElementById('note-modal-title').textContent = `Заметка: ${fav.bName} ${fav.ch}:${fav.vNum}`;
+    const input = document.getElementById('note-input');
+    // Если заметка уже есть — показываем её, иначе подставляем текст стиха
+    input.value = fav.note || (versePreview || '');
+    document.getElementById('note-modal-overlay').classList.add('open');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+}
+
+function closeNoteModal() {
+    document.getElementById('note-modal-overlay').classList.remove('open');
+    currentNoteId = null;
+}
+
+function saveNote() {
+    const fav = favorites.find(f => f.id === currentNoteId);
+    if (fav) {
+        fav.note = document.getElementById('note-input').value.trim();
+        renderFavorites();
+        saveState();
+    }
+    closeNoteModal();
+}
+
+function removeFavorite(id) {
+    favorites = favorites.filter(f => f.id !== id);
+    renderFavorites();
+    saveState();
+}
+
+// --- ПОИСК ---
+
+document.getElementById('search-btn').onclick = search;
+function search() {
+    const query = searchInput.value.trim();
+    if (!query || query.length < 3) return;
+
+    grid.innerHTML = "";
+    Object.keys(loadedDbs).forEach(name => {
+        const s = dbSchemas[name];
+        const col = document.createElement('div');
+        col.className = 'column';
+        col.innerHTML = `<div class="col-header"><div class="col-title">🔍 ${name}</div></div>`;
+        
+        const vDiv = document.createElement('div');
+        vDiv.className = 'verses';
+
+        try {
+            const res = loadedDbs[name].exec(`
+                SELECT ${s.book}, ${s.chapter}, ${s.verse}, ${s.text} 
+                FROM ${s.table} 
+                WHERE ${s.text} LIKE '%${query}%' LIMIT 50
+            `);
+
+            if (res[0]) {
+                res[0].values.forEach(row => {
+                    const item = document.createElement('div');
+                    item.className = 'verse-row';
+                    item.style.cursor = "pointer";
+                    item.onclick = () => goToContext(row[0], row[1]);
+                    
+                    const text = cleanText(row[3]).replace(new RegExp(query, 'gi'), m => `<mark>${m}</mark>`);
+                    item.innerHTML = `
+                        <div class="v-num" style="min-width:45px">Кн.${row[0]}<br>${row[1]}:${row[2]}</div>
+                        <span class="v-text">${text}</span>
+                    `;
+                    vDiv.appendChild(item);
+                });
+            } else {
+                vDiv.innerHTML = '<div style="padding:20px; color:var(--gray-400)">Ничего не найдено</div>';
+            }
+        } catch (e) { console.error(e); }
+
+        col.appendChild(vDiv);
+        grid.appendChild(col);
+    });
+}
+
+// --- РАЗМЕР ШРИФТА ---
+let fontSize = 17;
+const fontLabel = document.getElementById('font-label');
+const vTextStyle = document.createElement('style');
+vTextStyle.id = 'vtext-size';
+document.head.appendChild(vTextStyle);
+function setFontSize(size) {
+    fontSize = Math.max(12, Math.min(28, size));
+    vTextStyle.textContent = '.v-text { font-size: ' + fontSize + 'px; }';
+    fontLabel.textContent = fontSize + 'px';
+    localStorage.setItem('fontSize', fontSize);
+}
+document.getElementById('font-dec').onclick = () => setFontSize(fontSize - 1);
+document.getElementById('font-inc').onclick = () => setFontSize(fontSize + 1);
+const savedFont = parseInt(localStorage.getItem('fontSize'));
+if (savedFont) setFontSize(savedFont);
+
+// Патч для синхронизации мобильного лейбла шрифта
+const _origSetFont = setFontSize;
+window.setFontSize = function(size) {
+    _origSetFont(size);
+    const lbl = document.getElementById('mob-font-label');
+    if (lbl) lbl.textContent = fontSize + 'px';
+};
+
+// --- ТЁМНАЯ ТЕМА ---
+const themeBtn = document.getElementById('theme-toggle');
+function applyTheme(dark) {
+    document.body.classList.toggle('dark', dark);
+    themeBtn.textContent = dark ? '◑' : '◐';
+    localStorage.setItem('darkTheme', dark ? '1' : '');
+}
+themeBtn.onclick = () => applyTheme(!document.body.classList.contains('dark'));
+if (localStorage.getItem('darkTheme') === '1') applyTheme(true);
+
+// --- ПОЛНОЭКРАННЫЙ РЕЖИМ ---
+let _fullscreenBtn = null;
+function toggleFullscreen(btn) {
+    const col = btn.closest('.column');
+    const isFullscreen = col.classList.toggle('fullscreen');
+    const closeBtn = document.getElementById('fullscreen-close');
+    if (isFullscreen) {
+        _fullscreenBtn = btn;
+        closeBtn.classList.add('visible');
+        document.onkeydown = (e) => { if (e.key === 'Escape') exitFullscreen(); };
+    } else {
+        closeBtn.classList.remove('visible');
+        document.onkeydown = null;
+        _fullscreenBtn = null;
+    }
+}
+function exitFullscreen() {
+    if (_fullscreenBtn) {
+        const col = _fullscreenBtn.closest('.column');
+        col.classList.remove('fullscreen');
+        document.getElementById('fullscreen-close').classList.remove('visible');
+        document.onkeydown = null;
+        _fullscreenBtn = null;
+    }
+}
+
+// --- МОБИЛЬНЫЕ ФУНКЦИИ ---
+
+function isMobile() { return window.innerWidth <= 768; }
+
+// ─── КАРУСЕЛЬ ПЕРЕВОДОВ ───
+let carouselIndex = 0;
+let carouselTrack = null;
+
+function initCarousel() {
+    if (!isMobile()) return;
+
+    // Создаём или находим трек
+    if (!carouselTrack) {
+        carouselTrack = document.createElement('div');
+        carouselTrack.id = 'carousel-track';
+        // Перемещаем все колонки в трек
+        const cols = [...grid.querySelectorAll('.column')];
+        cols.forEach(c => carouselTrack.appendChild(c));
+        grid.innerHTML = '';
+        grid.appendChild(carouselTrack);
+    } else {
+        const cols = [...grid.querySelectorAll('.column:not(#carousel-track .column)')];
+        cols.forEach(c => carouselTrack.appendChild(c));
+    }
+
+    updateCarousel(0);
+    renderDots();
+    attachSwipe();
+}
+
+function updateCarousel(idx) {
+    if (!carouselTrack) return;
+    const cols = carouselTrack.querySelectorAll('.column');
+    if (!cols.length) return;
+    carouselIndex = Math.max(0, Math.min(idx, cols.length - 1));
+    carouselTrack.style.transform = `translateX(-${carouselIndex * 100}vw)`;
+
+    // Обновляем label
+    const label = document.getElementById('mob-translation-label');
+    const names = Object.keys(loadedDbs);
+    if (label && names.length) {
+        const name = names[carouselIndex] || '';
+        label.textContent = name.replace('.SQLite3', '') + (names.length > 1 ? `  ${carouselIndex+1}/${names.length}` : '');
+    } else if (label) {
+        label.textContent = '';
+    }
+
+    renderDots();
+}
+
+function renderDots() {
+    const dotsEl = document.getElementById('carousel-dots');
+    if (!dotsEl) return;
+    const count = Object.keys(loadedDbs).length;
+    dotsEl.innerHTML = '';
+    if (count <= 1) return;
+    for (let i = 0; i < count; i++) {
+        const d = document.createElement('span');
+        d.className = 'carousel-dot' + (i === carouselIndex ? ' active' : '');
+        d.onclick = () => updateCarousel(i);
+        dotsEl.appendChild(d);
+    }
+}
+
+function attachSwipe() {
+    if (!isMobile()) return;
+    let startX = 0, startY = 0, isDragging = false;
+
+    // Убираем старые листенеры если были
+    grid.removeEventListener('touchstart', onTouchStart);
+    grid.removeEventListener('touchmove', onTouchMove);
+    grid.removeEventListener('touchend', onTouchEnd);
+
+    grid.addEventListener('touchstart', onTouchStart, { passive: true });
+    grid.addEventListener('touchmove', onTouchMove, { passive: false });
+    grid.addEventListener('touchend', onTouchEnd, { passive: true });
+}
+
+function onTouchStart(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = false;
+}
+
+function onTouchMove(e) {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    // Определяем направление — горизонталь или вертикаль
+    if (!isDragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+        isDragging = true;
+    }
+    if (isDragging) {
+        e.preventDefault(); // блокируем вертикальный скролл страницы
+        if (carouselTrack) {
+            const offset = carouselIndex * window.innerWidth - dx;
+            carouselTrack.style.transition = 'none';
+            carouselTrack.style.transform = `translateX(-${offset}px)`;
+        }
+    }
+}
+
+function onTouchEnd(e) {
+    if (!isDragging) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (carouselTrack) carouselTrack.style.transition = '';
+    if (Math.abs(dx) > 50) {
+        if (dx < 0) updateCarousel(carouselIndex + 1);
+        else updateCarousel(carouselIndex - 1);
+    } else {
+        updateCarousel(carouselIndex); // snap back
+    }
+    isDragging = false;
+}
+
+// Перехватываем render() чтобы на мобиле перестраивать карусель
+const _origRender = render;
+window.render = function() {
+    _origRender();
+    if (isMobile()) {
+        // Обёртываем колонки в трек после рендера
+        const cols = [...grid.querySelectorAll('.column')];
+        if (cols.length) {
+            carouselTrack = document.createElement('div');
+            carouselTrack.id = 'carousel-track';
+            cols.forEach(c => carouselTrack.appendChild(c));
+            // Очищаем grid (кроме empty-state)
+            const empties = [...grid.querySelectorAll('.empty-state')];
+            grid.innerHTML = '';
+            empties.forEach(e => grid.appendChild(e));
+            grid.appendChild(carouselTrack);
+            updateCarousel(carouselIndex < cols.length ? carouselIndex : 0);
+            attachSwipe();
+        }
+    }
+};
+
+// Перехватываем closeDatabase() чтобы обновлять карусель
+const _origClose = window.closeDatabase;
+window.closeDatabase = function(name) {
+    _origClose(name);
+    if (isMobile()) {
+        carouselTrack = null;
+        carouselIndex = 0;
+    }
+};
+
+// ─── SIDEBAR ───
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const isOpen = sidebar.classList.toggle('open');
+    overlay.classList.toggle('open', isOpen);
+    document.getElementById('mob-btn-books').classList.toggle('active', isOpen);
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+    document.getElementById('mob-btn-books').classList.remove('active');
+}
+
+// Закрывать sidebar при выборе перевода на мобилке
+document.getElementById('db-list').addEventListener('click', () => {
+    if (isMobile()) setTimeout(closeSidebar, 250);
+});
+
+function focusNavigation() {
+    document.getElementById('book-select').focus();
+}
+
+function focusSearch() {
+    toggleMobileSearch();
+}
+
+// ─── Мобильный поиск ───
+function toggleMobileSearch() {
+    const bar = document.getElementById('mobile-search-bar');
+    const isVisible = bar.style.display === 'flex';
+    closeFontPanel();
+    bar.style.display = isVisible ? 'none' : 'flex';
+    document.getElementById('mob-btn-search').classList.toggle('active', !isVisible);
+    if (!isVisible) setTimeout(() => document.getElementById('mob-search-input').focus(), 100);
+}
+function closeMobileSearch() {
+    const bar = document.getElementById('mobile-search-bar');
+    if (bar) bar.style.display = 'none';
+    const btn = document.getElementById('mob-btn-search');
+    if (btn) btn.classList.remove('active');
+}
+function doMobileSearch() {
+    const q = document.getElementById('mob-search-input').value.trim();
+    document.getElementById('search-input').value = q;
+    document.getElementById('search-btn').click();
+    closeMobileSearch();
+}
+document.getElementById('mob-search-input') && document.getElementById('mob-search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doMobileSearch();
+});
+
+// ─── Мобильный шрифт ───
+function toggleFontPanel() {
+    const bar = document.getElementById('mobile-font-bar');
+    const isVisible = bar.style.display === 'flex';
+    closeMobileSearch();
+    bar.style.display = isVisible ? 'none' : 'flex';
+    const btn = document.getElementById('mob-btn-font');
+    if (btn) btn.classList.toggle('active', !isVisible);
+    syncMobFontLabel();
+}
+function closeFontPanel() {
+    const bar = document.getElementById('mobile-font-bar');
+    if (bar) bar.style.display = 'none';
+    const btn = document.getElementById('mob-btn-font');
+    if (btn) btn.classList.remove('active');
+}
+function syncMobFontLabel() {
+    const lbl = document.getElementById('mob-font-label');
+    if (lbl) lbl.textContent = fontSize + 'px';
+}
+
+document.getElementById('ai-close-btn').addEventListener('click', () => {
+    document.getElementById('mob-btn-ai').classList.remove('active');
+});
+document.getElementById('ai-open-btn').addEventListener('click', () => {
+    if (isMobile()) document.getElementById('mob-btn-ai').classList.add('active');
+});
+
+
+function updateLoadingBar() {
+    const total = document.querySelectorAll('.db-item').length;
+    const loading = document.querySelectorAll('.db-item.loading').length;
+    const bar = document.getElementById('loading-bar');
+    const fill = document.getElementById('loading-bar-fill');
+    const info = document.getElementById('loading-info');
+
+    if (loading > 0) {
+        bar.classList.add('active');
+        const loaded = document.querySelectorAll('.db-item.loaded').length;
+        const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
+        fill.style.width = pct + '%';
+        info.textContent = `Загрузка… ${loaded} из ${total}`;
+    } else {
+        bar.classList.remove('active');
+        const loaded = document.querySelectorAll('.db-item.loaded').length;
+        info.textContent = loaded > 0 ? `Загружено: ${loaded}` : 'Готово';
+        fill.style.width = '100%';
+        setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0%'; }, 800);
+    }
+}
+
+// --- ИИ ПОМОЩНИК ---
+const GROQ_KEY = "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";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+const aiPanel = document.getElementById('ai-panel');
+const aiMessages = document.getElementById('ai-messages');
+const aiInput = document.getElementById('ai-input');
+const aiSendBtn = document.getElementById('ai-send-btn');
+const aiContext = document.getElementById('ai-context');
+
+document.getElementById('ai-open-btn').onclick = () => {
+    aiPanel.classList.add('open');
+    updateAiContext();
+};
+document.getElementById('ai-close-btn').onclick = () => aiPanel.classList.remove('open');
+
+function updateAiContext() {
+    const book = bookSelect.options[bookSelect.selectedIndex]?.text || '—';
+    const ch = chapterSelect.value || '—';
+    const translations = Object.keys(loadedDbs).map(n => n.replace('.SQLite3','')).join(', ') || '—';
+    aiContext.textContent = `📖 ${book} ${ch !== '—' ? 'гл. ' + ch : ''} | Переводы: ${translations}`;
+}
+
+function getVerseTexts() {
+    const bId = bookSelect.value;
+    const cId = chapterSelect.value;
+    if (!bId || !cId) return null;
+    const bName = bookSelect.options[bookSelect.selectedIndex].text;
+    let result = `Книга: ${bName}, Глава: ${cId}\n\n`;
+    // Ограничиваем до 5 переводов чтобы не превысить лимит токенов
+    const names = Object.keys(loadedDbs).slice(0, 5);
+    const total = Object.keys(loadedDbs).length;
+    if (total > 5) result += `(Показаны 5 из ${total} переводов)\n\n`;
+    names.forEach(name => {
+        const s = dbSchemas[name];
+        try {
+            const res = loadedDbs[name].exec(`SELECT ${s.verse}, ${s.text} FROM ${s.table} WHERE ${s.book}=${bId} AND ${s.chapter}=${cId} ORDER BY ${s.verse} LIMIT 15`);
+            if (res[0]) {
+                result += `=== ${name.replace('.SQLite3','')} ===\n`;
+                res[0].values.forEach(row => { result += `${row[0]}. ${cleanText(row[1])}\n`; });
+                result += '\n';
+            }
+        } catch(e) {}
+    });
+    return result;
+}
+
+function aiAction(type) {
+    document.querySelectorAll('.ai-action-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + (type === 'compare' ? 'compare' : 'parallel')).classList.add('active');
+
+    const texts = getVerseTexts();
+    if (!texts) {
+        addMessage('assistant', 'Сначала выберите книгу и главу.');
+        return;
+    }
+    updateAiContext();
+
+    let prompt;
+    if (type === 'compare') {
+        prompt = `Вот текст одной и той же главы в разных переводах Библии:\n\n${texts}\nПроанализируй ключевые различия между переводами: где используются разные слова, как это влияет на смысл, какой перевод более точный и почему. Отвечай на русском языке, кратко и по существу.`;
+    } else {
+        prompt = `Вот текст главы из Библии:\n\n${texts}\nНайди и перечисли параллельные места — похожие стихи или темы в других книгах Библии. Для каждого параллельного места укажи ссылку (книга, глава, стих) и кратко объясни связь. Отвечай на русском языке.`;
+    }
+
+    sendToAI(prompt, type === 'compare' ? '⚖️ Сравниваю переводы…' : '🔗 Ищу параллельные места…');
+}
+
+aiSendBtn.onclick = () => {
+    const q = aiInput.value.trim();
+    if (!q) return;
+    aiInput.value = '';
+    const texts = getVerseTexts();
+    const context = texts ? `Контекст — открытая глава:\n${texts}\n\n` : '';
+    sendToAI(context + `Вопрос пользователя: ${q}`, q);
+};
+
+aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') aiSendBtn.click(); });
+
+function addMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = `ai-message ${role}`;
+    div.textContent = text;
+    aiMessages.appendChild(div);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+    return div;
+}
+
+function addThinking() {
+    const div = document.createElement('div');
+    div.className = 'ai-message thinking';
+    div.innerHTML = '<div class="ai-dots"><span></span><span></span><span></span></div> Думаю…';
+    aiMessages.appendChild(div);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+    return div;
+}
+
+async function sendToAI(prompt, userLabel) {
+    addMessage('user', userLabel);
+    const thinking = addThinking();
+    aiSendBtn.disabled = true;
+
+    try {
+        const resp = await fetch(GROQ_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GROQ_KEY}`
+            },
+            body: JSON.stringify({
+                model: GROQ_MODEL,
+                messages: [
+                    { role: 'system', content: 'Ты библейский помощник. Отвечаешь кратко, по существу, на русском языке. Используешь знания о Библии, богословии и текстологии.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 1000,
+                temperature: 0.5
+            })
+        });
+        const data = await resp.json();
+        thinking.remove();
+        const answer = data.choices?.[0]?.message?.content || 'Нет ответа.';
+        addMessage('assistant', answer);
+    } catch(e) {
+        thinking.remove();
+        addMessage('assistant', 'Ошибка соединения. Проверьте интернет.');
+    }
+    aiSendBtn.disabled = false;
+}
+</script>
+</body>
+</html>
