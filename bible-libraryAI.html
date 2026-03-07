@@ -1018,16 +1018,22 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
         height: 100vh;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
     }
 
-    /* ── TOPBAR: одна строка ☰ | [Книга▼] | ‹ | [Гл▼] | › ── */
+    /* ── TOPBAR: прилипает к верху, всегда видим ── */
     .topbar {
         height: 50px;
+        min-height: 50px;
         flex-wrap: nowrap;
         padding: 0 6px;
         gap: 4px;
         flex-shrink: 0;
-        overflow: hidden;
+        overflow: visible;
+        z-index: 20;
+        position: relative;
     }
 
     /* Скрываем второстепенное: поиск, шрифт, тема, ИИ — они в нижней панели */
@@ -1098,6 +1104,15 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
         font-weight: 600;
     }
 
+    /* Выбор стиха — компактный, только на мобиле */
+    #verse-select {
+        width: 48px;
+        min-width: 48px;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
     /* Кнопки ‹ › — крупнее для пальца */
     .nav-btn {
         width: 38px;
@@ -1115,7 +1130,9 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
         padding: 0;
         gap: 0;
         flex: 1;
+        min-height: 0;
         position: relative;
+        margin-bottom: 52px;
     }
 
     /* Внутренний трек карусели */
@@ -1124,6 +1141,7 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
         flex-direction: row;
         width: 100%;
         height: 100%;
+        min-height: 0;
         transition: transform 0.32s cubic-bezier(.4,0,.2,1);
     }
 
@@ -1135,7 +1153,17 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
         border: none;
         box-shadow: none;
         height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         animation: none;
+    }
+
+    .verses {
+        padding: 12px 16px;
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
     }
 
     .column.fullscreen {
@@ -1180,11 +1208,6 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
         border-bottom: 1px solid var(--gray-200);
     }
 
-    .verses {
-        padding: 12px 16px;
-        overflow-y: auto;
-        height: 100%;
-    }
 
     .v-text {
         font-size: 16px;
@@ -1246,10 +1269,8 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
     .mobile-nav-btn.active { color: var(--blue); }
     .mobile-nav-btn:active { color: var(--blue); }
 
-    /* Компенсация высоты нижней навигации */
-    .content {
-        padding-bottom: 52px;
-    }
+    /* Компенсация высоты нижней навигации — через bottom в fixed */
+    /* .content уже имеет bottom:0 — нижняя панель поверх него */
 
     /* ── SIDEBAR: добавляем отступ снизу под нижнюю панель ── */
     .sidebar {
@@ -1317,6 +1338,7 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
             <button id="prev-btn" class="nav-btn" title="Предыдущая глава">‹</button>
             <select id="chapter-select" disabled><option value="">Гл.</option></select>
             <button id="next-btn" class="nav-btn" title="Следующая глава">›</button>
+            <select id="verse-select" disabled style="display:none"><option value="">Ст.</option></select>
         </div>
 
         <div class="font-size-control">
@@ -1340,7 +1362,10 @@ body.dark .ai-input-area input { background: #0f172a; color: #e2e8f0; border-col
     <div class="ai-panel" id="ai-panel">
         <div class="ai-panel-header">
             <h3>✦ Библейский помощник</h3>
-            <button class="ai-close-btn" id="ai-close-btn">✕</button>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button onclick="clearAiHistory()" title="Очистить чат" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;" title="Очистить">🗑</button>
+                <button class="ai-close-btn" id="ai-close-btn">✕</button>
+            </div>
         </div>
         <div class="ai-actions">
             <button class="ai-action-btn" id="btn-compare" onclick="aiAction('compare')">⚖️ Сравнить<br>переводы</button>
@@ -1448,6 +1473,7 @@ function saveState() {
         loadedFiles: Object.keys(loadedDbs),
         book: bookSelect.value,
         chapter: chapterSelect.value,
+        scrollPosition: getCurrentScrollVerse(),
         favorites: favorites
     };
     localStorage.setItem('bible_app_state', JSON.stringify(state));
@@ -1477,6 +1503,10 @@ async function restoreState(allFiles) {
         if (state.chapter) {
             chapterSelect.value = state.chapter;
             render();
+            // Восстанавливаем позицию скролла
+            if (state.scrollPosition) {
+                setTimeout(() => scrollToVerse(state.scrollPosition), 300);
+            }
         }
     }
 }
@@ -1605,6 +1635,9 @@ function updateSelectors() {
 bookSelect.onchange = function() {
     const bId = this.value;
     chapterSelect.innerHTML = '<option value="">Глава</option>';
+    verseSelect.innerHTML = '<option value="">Ст.</option>';
+    verseSelect.style.display = 'none';
+    verseSelect.disabled = true;
     if (!bId) return;
 
     let maxChapters = 0;
@@ -1622,7 +1655,108 @@ bookSelect.onchange = function() {
     chapterSelect.disabled = false;
 };
 
-chapterSelect.onchange = () => { render(); saveState(); };
+chapterSelect.onchange = () => { render(); saveState(); updateVerseSelect(); };
+
+// --- ВЫБОР СТИХА (только мобиле) ---
+const verseSelect = document.getElementById('verse-select');
+
+function updateVerseSelect() {
+    if (!isMobile()) return;
+    const bId = bookSelect.value;
+    const cId = chapterSelect.value;
+    verseSelect.innerHTML = '<option value="">Ст.</option>';
+    if (!bId || !cId) { verseSelect.style.display = 'none'; verseSelect.disabled = true; return; }
+
+    let maxVerse = 0;
+    Object.keys(loadedDbs).forEach(name => {
+        const s = dbSchemas[name];
+        try {
+            const res = loadedDbs[name].exec(`SELECT MAX(${s.verse}) FROM ${s.table} WHERE ${s.book}=${bId} AND ${s.chapter}=${cId}`);
+            if (res[0]) maxVerse = Math.max(maxVerse, res[0].values[0][0]);
+        } catch(e) {}
+    });
+
+    for (let i = 1; i <= maxVerse; i++) verseSelect.appendChild(new Option(i, i));
+    verseSelect.disabled = false;
+    verseSelect.style.display = '';
+}
+
+verseSelect.onchange = function() {
+    const v = this.value;
+    if (!v) return;
+    scrollToVerse(parseInt(v));
+};
+
+// --- ИСТОРИЯ НАВИГАЦИИ ---
+let navHistory = [];
+let navHistoryIndex = -1;
+
+function pushHistory(bId, cId) {
+    if (!bId || !cId) return;
+    const cur = navHistory[navHistoryIndex];
+    if (cur && cur.bId == bId && cur.cId == cId) return; // дубль
+    // Обрезаем «вперёд» при новом переходе
+    navHistory = navHistory.slice(0, navHistoryIndex + 1);
+    navHistory.push({ bId, cId });
+    if (navHistory.length > 50) navHistory.shift();
+    navHistoryIndex = navHistory.length - 1;
+}
+
+function goBack() {
+    if (navHistoryIndex <= 0) return;
+    navHistoryIndex--;
+    const { bId, cId } = navHistory[navHistoryIndex];
+    bookSelect.value = bId;
+    bookSelect.onchange();
+    chapterSelect.value = cId;
+    render();
+    updateVerseSelect();
+    // не пушим в историю при возврате
+}
+
+// Кнопки ‹ › — долгое нажатие = назад в истории
+document.getElementById('prev-btn').addEventListener('longpress', goBack);
+
+// --- СКРОЛЛ К СТИХУ ---
+function scrollToVerse(verseNum) {
+    const verses = document.querySelectorAll(`.verse-row[data-verse="${verseNum}"]`);
+    if (verses.length) {
+        verses[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// Определяем текущий видимый стих (для запоминания позиции)
+function getCurrentScrollVerse() {
+    const verses = document.querySelectorAll('.verse-row[data-verse]');
+    const grid = document.getElementById('compare-grid');
+    const gridTop = grid.getBoundingClientRect().top;
+    for (const v of verses) {
+        const rect = v.getBoundingClientRect();
+        if (rect.top >= gridTop) return parseInt(v.dataset.verse);
+    }
+    return 1;
+}
+
+// Синхронный скролл при свайпе — восстанавливаем позицию после переключения перевода
+function syncScrollAfterSwipe() {
+    if (!isMobile()) return;
+    // Берём стих из первой (только что покинутой) колонки — нет, берём из активной
+    const activeVerses = document.querySelectorAll('#carousel-track .column .verses');
+    if (!activeVerses.length) return;
+    // Находим стих по позиции скролла предыдущей колонки
+    const prevScroll = _lastScrollTop || 0;
+    const newCol = activeVerses[carouselIndex];
+    if (newCol) newCol.scrollTop = prevScroll;
+}
+
+let _lastScrollTop = 0;
+
+// Сохраняем скролл при уходе со слайда
+function captureScrollBeforeSwipe() {
+    if (!carouselTrack) return;
+    const cols = carouselTrack.querySelectorAll('.column .verses');
+    if (cols[carouselIndex]) _lastScrollTop = cols[carouselIndex].scrollTop;
+}
 
 // Функции "Вперед" / "Назад"
 function changeChapter(step) {
@@ -1630,19 +1764,33 @@ function changeChapter(step) {
     let max = chapterSelect.options.length - 1;
     if (c + step >= 1 && c + step <= max) {
         chapterSelect.value = c + step;
+        pushHistory(bookSelect.value, chapterSelect.value);
         render();
+        updateVerseSelect();
         saveState();
     }
 }
 document.getElementById('prev-btn').onclick = () => changeChapter(-1);
 document.getElementById('next-btn').onclick = () => changeChapter(1);
 
+// Долгое нажатие на ‹ = назад в истории
+let _prevBtnTimer = null;
+document.getElementById('prev-btn').addEventListener('touchstart', () => {
+    _prevBtnTimer = setTimeout(() => { goBack(); _prevBtnTimer = null; }, 600);
+}, { passive: true });
+document.getElementById('prev-btn').addEventListener('touchend', () => {
+    if (_prevBtnTimer) { clearTimeout(_prevBtnTimer); _prevBtnTimer = null; }
+}, { passive: true });
+
 // Прямой переход (из поиска или закладок)
 window.goToContext = function(bId, cId) {
+    pushHistory(bookSelect.value, chapterSelect.value);
     bookSelect.value = bId;
     bookSelect.onchange();
     chapterSelect.value = cId;
+    pushHistory(bId, cId);
     render();
+    updateVerseSelect();
     saveState();
 };
 
@@ -1653,6 +1801,7 @@ function render() {
     const cId = chapterSelect.value;
     if (!bId || !cId) { grid.innerHTML = ""; return; }
 
+    pushHistory(bId, cId);
     const bName = bookSelect.options[bookSelect.selectedIndex].text;
     grid.innerHTML = "";
 
@@ -1947,14 +2096,25 @@ function updateCarousel(idx) {
     carouselIndex = Math.max(0, Math.min(idx, cols.length - 1));
     carouselTrack.style.transform = `translateX(-${carouselIndex * 100}vw)`;
 
-    // Обновляем label
+    // Обновляем label с кнопкой закрытия
     const label = document.getElementById('mob-translation-label');
     const names = Object.keys(loadedDbs);
     if (label && names.length) {
         const name = names[carouselIndex] || '';
-        label.textContent = name.replace('.SQLite3', '') + (names.length > 1 ? `  ${carouselIndex+1}/${names.length}` : '');
+        const displayName = name.replace('.SQLite3', '');
+        const counter = names.length > 1 ? `<span style="color:var(--gray-400);font-weight:400"> ${carouselIndex+1}/${names.length}</span>` : '';
+        label.innerHTML = `
+            <span style="flex:1;text-align:center;">${displayName}${counter}</span>
+            <button onclick="closeMobileTranslation('${name}')" title="Закрыть перевод"
+                style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--gray-400);
+                       padding:0 4px;line-height:1;flex-shrink:0;transition:color 0.15s;"
+                onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--gray-400)'">✕</button>
+        `;
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.padding = '4px 10px 4px 10px';
     } else if (label) {
-        label.textContent = '';
+        label.innerHTML = '';
     }
 
     renderDots();
@@ -1992,6 +2152,7 @@ function onTouchStart(e) {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isDragging = false;
+    captureScrollBeforeSwipe();
 }
 
 function onTouchMove(e) {
@@ -2018,6 +2179,7 @@ function onTouchEnd(e) {
     if (Math.abs(dx) > 50) {
         if (dx < 0) updateCarousel(carouselIndex + 1);
         else updateCarousel(carouselIndex - 1);
+        syncScrollAfterSwipe();
     } else {
         updateCarousel(carouselIndex); // snap back
     }
@@ -2043,6 +2205,7 @@ window.render = function() {
             updateCarousel(carouselIndex < cols.length ? carouselIndex : 0);
             attachSwipe();
         }
+        updateVerseSelect();
     }
 };
 
@@ -2057,6 +2220,14 @@ window.closeDatabase = function(name) {
 };
 
 // ─── SIDEBAR ───
+
+// ─── Закрытие перевода на мобиле ───
+window.closeMobileTranslation = function(name) {
+    const newIndex = carouselIndex > 0 ? carouselIndex - 1 : 0;
+    carouselTrack = null;
+    carouselIndex = newIndex;
+    closeDatabase(name); // вызывает render() → перестраивает карусель
+};
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -2239,13 +2410,44 @@ aiSendBtn.onclick = () => {
 
 aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') aiSendBtn.click(); });
 
-function addMessage(role, text) {
+// --- ИСТОРИЯ ДИАЛОГОВ ИИ ---
+let aiHistory = JSON.parse(localStorage.getItem('ai_chat_history') || '[]');
+
+function saveAiHistory() {
+    // Храним последние 60 сообщений
+    if (aiHistory.length > 60) aiHistory = aiHistory.slice(-60);
+    localStorage.setItem('ai_chat_history', JSON.stringify(aiHistory));
+}
+
+function restoreAiHistory() {
+    aiHistory.forEach(msg => renderMessage(msg.role, msg.text));
+}
+
+function renderMessage(role, text) {
     const div = document.createElement('div');
     div.className = `ai-message ${role}`;
     div.textContent = text;
     aiMessages.appendChild(div);
     aiMessages.scrollTop = aiMessages.scrollHeight;
     return div;
+}
+
+function addMessage(role, text) {
+    const div = renderMessage(role, text);
+    if (role !== 'thinking') {
+        aiHistory.push({ role, text });
+        saveAiHistory();
+    }
+    return div;
+}
+
+// Восстанавливаем историю при загрузке
+restoreAiHistory();
+
+function clearAiHistory() {
+    aiHistory = [];
+    localStorage.removeItem('ai_chat_history');
+    aiMessages.innerHTML = '';
 }
 
 function addThinking() {
