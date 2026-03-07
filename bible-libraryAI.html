@@ -1796,6 +1796,8 @@ function search() {
     if (!query || query.length < 3) return;
 
     grid.innerHTML = "";
+    const cols = [];
+
     Object.keys(loadedDbs).forEach(name => {
         const s = dbSchemas[name];
         const col = document.createElement('div');
@@ -1832,8 +1834,19 @@ function search() {
         } catch (e) { console.error(e); }
 
         col.appendChild(vDiv);
-        grid.appendChild(col);
+        cols.push(col);
     });
+
+    if (isMobile() && cols.length) {
+        carouselTrack = document.createElement('div');
+        carouselTrack.id = 'carousel-track';
+        cols.forEach(c => carouselTrack.appendChild(c));
+        grid.appendChild(carouselTrack);
+        updateCarousel(0);
+        attachSwipe();
+    } else {
+        cols.forEach(c => grid.appendChild(c));
+    }
 }
 
 // --- РАЗМЕР ШРИФТА ---
